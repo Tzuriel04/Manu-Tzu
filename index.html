@@ -158,12 +158,12 @@ section{padding:46px 0}
 .rsvp{text-align:center}
 .rsvp h2{margin:0;font-weight:400;font-size:clamp(3rem,11vw,4.6rem);line-height:1.05;color:var(--wine)}
 .rsvp > p{margin:8px 0 0;color:var(--muted);font-style:italic}
-.rsvp-area{position:relative;height:150px;max-width:460px;margin:26px auto 0;display:flex;align-items:center;justify-content:center;gap:16px}
+.rsvp-area{position:relative;height:240px;max-width:460px;margin:26px auto 0;display:flex;align-items:center;justify-content:center;gap:16px}
 .btn{border-radius:999px;padding:12px 28px;font-size:1.2rem;cursor:pointer;border:1px solid var(--wine);transition:left .35s ease,top .35s ease,transform .2s}
 .btn.yes{background:var(--wine);color:var(--wine-ink)}
 .btn.yes:hover{transform:scale(1.04)}
 .btn.no{background:transparent;color:var(--wine)}
-.btn.no.free{position:absolute}
+.btn.no.free{position:absolute;z-index:2;background:var(--bg)}
 .rsvp-msg{font-size:1.45rem;margin:10px auto 0;max-width:30ch;min-height:2em;color:var(--ink)}
 .heart{position:fixed;z-index:60;pointer-events:none;color:var(--wine);font-size:22px;animation:fly 1.8s ease-out forwards}
 @keyframes fly{to{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
@@ -409,7 +409,7 @@ lb.addEventListener("touchend", e => { if(sx===null) return; const dx = e.change
 const cons = document.getElementById("constellation"), place = document.getElementById("place");
 const LAYOUTS = {
   wide: {w:1000, h:430, pts:[[70,300],[210,160],[365,255],[505,105],[650,235],[800,130],[935,290]]},
-  tall: {w:420, h:820, pts:[[95,70],[310,170],[110,285],[315,395],[105,510],[310,620],[210,740]]}
+  tall: {w:420, h:520, pts:[[95,45],[310,110],[110,180],[315,250],[105,320],[310,390],[210,465]]}
 };
 let active = -1, mode = null;
 function smooth(pts){
@@ -461,6 +461,7 @@ function select(i){
     '<a class="pill solid" href="'+p.u+'" target="_blank" rel="noopener">Abrir en Google Maps</a>'+
     '<button class="pill" id="pNext" '+(i===PLACES.length-1?"disabled":"")+' aria-label="Lugar siguiente">›</button></div>';
   showMini(i);
+  requestAnimationFrame(() => { const r = mm.getBoundingClientRect(); if(r.bottom > window.innerHeight || r.top < 0) mm.scrollIntoView({behavior:"smooth", block:"center"}); });
   document.getElementById("pPrev").onclick = () => select(i-1);
   document.getElementById("pNext").onclick = () => select(i+1);
 }
@@ -514,12 +515,17 @@ function dodge(){
   tries++; no.textContent = noTexts[Math.min(tries, noTexts.length-1)];
   no.classList.add("free");
   const a = area.getBoundingClientRect(), b = no.getBoundingClientRect(), y = yes.getBoundingClientRect();
-  let x, top, k = 0;
-  do {
-    x = Math.random() * Math.max(0, a.width - b.width);
-    top = Math.random() * Math.max(0, a.height - b.height);
-    k++;
-  } while(k < 20 && x + a.left < y.right + 10 && x + a.left + b.width > y.left - 10 && top + a.top < y.bottom + 10 && top + a.top + b.height > y.top - 10);
+  const pad = 14, spots = [];
+  for(let top = 0; top <= a.height - b.height; top += 8){
+    for(let x = 0; x <= a.width - b.width; x += 8){
+      const L = a.left + x, T = a.top + top;
+      const hitsYes = L < y.right + pad && L + b.width > y.left - pad && T < y.bottom + pad && T + b.height > y.top - pad;
+      const same = Math.abs(L - b.left) < 40 && Math.abs(T - b.top) < 30;
+      if(!hitsYes && !same) spots.push([x, top]);
+    }
+  }
+  if(!spots.length) return;
+  const [x, top] = spots[Math.floor(Math.random()*spots.length)];
   no.style.left = x + "px"; no.style.top = top + "px";
 }
 no.addEventListener("pointerenter", e => { if(e.pointerType === "mouse") dodge(); });
